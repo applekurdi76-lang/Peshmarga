@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>سیستەمی هێزەکان - وەشانی ئەپ</title>
+    <title>سیستەمی هێزەکان - وەشانی کۆتایی</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -12,77 +12,85 @@
 
     <style>
         :root { --primary: #0f172a; --accent: #10b981; --danger: #f43f5e; --bg: #f1f5f9; --white: #ffffff; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding-bottom: 80px; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: var(--bg); margin: 0; padding-bottom: 80px; overflow-x: hidden; }
 
         /* App Header */
-        .app-header { background: var(--primary); color: white; padding: 15px; position: sticky; top: 0; z-index: 1000; text-align: center; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .app-header { background: var(--primary); color: white; padding: 18px; position: sticky; top: 0; z-index: 1000; text-align: center; font-weight: bold; font-size: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
 
         /* Bottom Navigation */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #ddd; z-index: 2000; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: #64748b; cursor: pointer; flex: 1; }
-        .nav-item.active { color: var(--accent); font-weight: bold; }
-        .nav-icon { font-size: 20px; margin-bottom: 2px; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 75px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #e2e8f0; z-index: 2000; padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: #64748b; cursor: pointer; flex: 1; transition: 0.3s; }
+        .nav-item.active { color: var(--accent); font-weight: bold; transform: translateY(-5px); }
+        .nav-icon { font-size: 22px; margin-bottom: 4px; }
 
-        /* Content */
-        .container { padding: 15px; }
-        .card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        /* Content Container */
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; border-radius: 20px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #edf2f7; }
         
-        /* Form */
-        input, select { width: 100%; padding: 12px; margin: 5px 0 15px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; background: #f8fafc; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        /* Form Styling */
+        input, select { width: 100%; padding: 14px; margin: 8px 0 15px; border: 1.5px solid #e2e8f0; border-radius: 12px; outline: none; background: #f8fafc; font-size: 14px; }
+        input:focus { border-color: var(--accent); }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.2s; }
         .btn-primary { background: var(--accent); color: white; }
-        .btn-print { background: var(--primary); color: white; margin-bottom: 10px; }
+        .btn-print { background: var(--primary); color: white; margin-bottom: 15px; }
 
-        /* List Styling */
-        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9; }
-        .badge { padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: bold; border: none; }
+        /* List & Items */
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f1f5f9; }
+        .badge { padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: bold; border: none; cursor: pointer; }
         .bg-duty { background: #dcfce7; color: #166534; }
         .bg-off { background: #fee2e2; color: #991b1b; }
 
-        /* Login */
+        /* Login Screen */
         #login-page { position: fixed; inset: 0; background: var(--primary); z-index: 5000; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: white; padding: 35px; border-radius: 25px; width: 90%; max-width: 380px; text-align: center; }
 
+        /* Print Style */
         @media print {
             .bottom-nav, .app-header, .no-print, .btn, input, select { display: none !important; }
             body { padding-bottom: 0; background: white; }
-            .card { box-shadow: none; border: none; padding: 0; }
-            .print-header { display: block !important; text-align: center; border-bottom: 2px solid #000; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { border: 1px solid black; padding: 8px; text-align: center; }
+            .card { box-shadow: none; border: 1px solid #000; border-radius: 0; }
+            .print-only { display: block !important; text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid black; padding: 10px; text-align: center; color: black !important; }
         }
-        .print-header { display: none; }
+        .print-only { display: none; }
     </style>
 </head>
 <body>
 
 <div id="login-page">
-    <div style="background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center;">
-        <h2 style="color: var(--primary)">چوونەژوورەوە</h2>
+    <div class="login-box">
+        <h2 style="margin-top:0; color:var(--primary)">🛡️ چوونەژوورەوە</h2>
+        <p style="color:#64748b; font-size:14px">تکایە زانیاری ئەدمین بنووسە</p>
         <input type="email" id="email" placeholder="ئیمێڵ">
         <input type="password" id="pass" placeholder="وشەی تێپەڕ">
-        <button class="btn btn-primary" onclick="login()">دڵنیایی</button>
+        <button class="btn btn-primary" onclick="login()">چوونەژوورەوە</button>
     </div>
 </div>
 
-<header class="app-header">سیستەمی هێزەکان v4.0</header>
+<header class="app-header">سیستەمی بەڕێوەبردنی هێزەکان</header>
 
 <div class="container">
     <div id="tab-dash" class="tab-content">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="card" style="text-align:center">
-                <small>ئامادە</small><h2 id="d-count" style="color:var(--accent); margin:5px 0">0</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="card" style="text-align:center; border-bottom: 4px solid var(--accent);">
+                <small style="color:#64748b">ئامادە</small>
+                <h2 id="d-count" style="margin:5px 0; color:var(--accent)">0</h2>
             </div>
-            <div class="card" style="text-align:center">
-                <small>پشوو</small><h2 id="o-count" style="color:var(--danger); margin:5px 0">0</h2>
+            <div class="card" style="text-align:center; border-bottom: 4px solid var(--danger);">
+                <small style="color:#64748b">پشوو</small>
+                <h2 id="o-count" style="margin:5px 0; color:var(--danger)">0</h2>
             </div>
         </div>
-        <div class="card"><canvas id="myChart" height="200"></canvas></div>
+        <div class="card">
+            <canvas id="myChart" height="220"></canvas>
+        </div>
     </div>
 
     <div id="tab-add" class="tab-content" style="display:none;">
         <div class="card">
-            <h3>تۆمارکردنی نوێ</h3>
+            <h3 style="margin-top:0">📝 تۆمارکردنی نوێ</h3>
             <input type="text" id="pName" placeholder="ناوی سیانی">
             <input type="text" id="pRank" placeholder="پلە">
             <select id="pShift">
@@ -90,20 +98,26 @@
                 <option value="واجبی ٢">واجبی ٢</option>
                 <option value="واجبی ٣">واجبی ٣</option>
             </select>
-            <button class="btn btn-primary" onclick="saveData()">💾 پاشەکەوتکردن</button>
+            <button class="btn btn-primary" onclick="saveData()">💾 پاشەکەوتکردن لە سێرڤەر</button>
         </div>
     </div>
 
     <div id="tab-list" class="tab-content" style="display:none;">
-        <button class="btn btn-print no-print" onclick="window.print()">🖨️ چاپی ڕاپۆرت (A4)</button>
+        <button class="btn btn-print no-print" onclick="window.print()">🖨️ چاپی ڕاپۆرتی ڕۆژانە</button>
         <div class="card">
-            <div class="print-header">
-                <h2>وەزارەتی پێشمەرگە</h2>
-                <h3>ڕاپۆرتی ڕۆژانە</h3>
+            <div class="print-only">
+                <h2>حکومەتی هەرێمی کوردستان</h2>
+                <h3>وەزارەتی پێشمەرگە</h3>
+                <p>ڕاپۆرتی ئامادەبوونی پێشمەرگە - ڕێکەوت: <span id="p-date"></span></p>
                 <hr>
             </div>
-            <input type="text" id="search" class="no-print" placeholder="بگەڕێ..." onkeyup="filter()">
+            <input type="text" id="search" class="no-print" placeholder="بگەڕێ بۆ ناوەکان..." onkeyup="filter()">
             <div id="main-list"></div>
+            
+            <div class="print-only" style="margin-top:50px; display:flex; justify-content:space-around">
+                <p>واژووی ئەفسەری ئامار</p>
+                <p>واژووی فەرماندەی یەکە</p>
+            </div>
         </div>
     </div>
 
@@ -112,7 +126,7 @@
     </div>
 </div>
 
-<nav class="bottom-nav">
+<nav class="bottom-nav no-print">
     <div class="nav-item active" onclick="showTab('dash', this)"><span class="nav-icon">📊</span>داشبۆرد</div>
     <div class="nav-item" onclick="showTab('add', this)"><span class="nav-icon">📝</span>تۆمار</div>
     <div class="nav-item" onclick="showTab('list', this)"><span class="nav-icon">👥</span>لیست</div>
@@ -121,6 +135,7 @@
 </nav>
 
 <script>
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyCPmPpzAYhMx2KRBCzL1ZwS4AiqIuK1Nk8",
       authDomain: "peshmarga-69612.firebaseapp.com",
@@ -133,8 +148,13 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
     let chart;
+    let allData = [];
 
-    function login() { auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('pass').value); }
+    // Auth Logic
+    function login() { 
+        auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('pass').value)
+            .catch(e => alert("هەڵەیە لە ئیمێڵ یان پاسوۆرد")); 
+    }
     function logout() { auth.signOut().then(() => location.reload()); }
 
     auth.onAuthStateChanged(user => {
@@ -144,74 +164,88 @@
         }
     });
 
+    // Navigation
     function showTab(id, el) {
         document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
         document.getElementById('tab-'+id).style.display = 'block';
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         el.classList.add('active');
+        window.scrollTo(0,0);
     }
 
+    // Data Engine
     function init() {
         db.collection("peshmerga").orderBy("createdAt", "desc").onSnapshot(snap => {
-            const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
-            render(data);
+            allData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            renderAll();
         });
     }
 
-    function render(data) {
-        const duty = data.filter(x => x.status === 'Duty').length;
-        const off = data.filter(x => x.status === 'Off').length;
+    function renderAll() {
+        const duty = allData.filter(x => x.status === 'Duty').length;
+        const off = allData.filter(x => x.status === 'Off').length;
+        
         document.getElementById('d-count').innerText = duty;
         document.getElementById('o-count').innerText = off;
+        document.getElementById('p-date').innerText = new Date().toLocaleDateString('ku-IQ');
 
-        // Chart
+        // Chart Update
         const ctx = document.getElementById('myChart').getContext('2d');
         if(chart) chart.destroy();
         chart = new Chart(ctx, {
             type: 'doughnut',
-            data: { labels: ['ئامادە', 'پشوو'], datasets: [{ data: [duty, off], backgroundColor: ['#10b981', '#f43f5e'] }] }
+            data: { labels: ['ئامادە', 'پشوو'], datasets: [{ data: [duty, off], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0 }] },
+            options: { cutout: '75%', plugins: { legend: { position: 'bottom' } } }
         });
 
-        // Main List
-        document.getElementById('main-list').innerHTML = data.map(p => `
+        // Main List Render
+        document.getElementById('main-list').innerHTML = allData.map(p => `
             <div class="list-item">
-                <div><b>${p.name}</b><br><small>${p.rank}</small></div>
+                <div><b>${p.name}</b><br><small style="color:#64748b">${p.rank} - ${p.shift}</small></div>
                 <button onclick="toggleS('${p.id}','${p.status}')" class="badge ${p.status==='Duty'?'bg-duty':'bg-off'}">
                     ${p.status==='Duty'?'ئامادە':'پشوو'}
                 </button>
             </div>
         `).join('');
 
-        // Shifts & Bulk
+        // Shifts Group Render
         const groups = {"واجبی ١":[], "واجبی ٢":[], "واجبی ٣":[]};
-        data.forEach(p => groups[p.shift]?.push(p));
+        allData.forEach(p => groups[p.shift]?.push(p));
         document.getElementById('shifts-container').innerHTML = Object.keys(groups).map(s => `
             <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:8px">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px">
                     <b>${s} (${groups[s].length})</b>
-                    <button class="badge bg-duty" style="cursor:pointer" onclick="bulk('${s}')">گۆڕینی بەکۆمەڵ</button>
+                    <button class="badge bg-duty" style="border:1px solid #10b981" onclick="bulk('${s}')">گۆڕینی بەکۆمەڵ</button>
                 </div>
-                ${groups[s].map(p => `<div style="font-size:13px; padding:3px 0">${p.name} - ${p.status==='Duty'?'✅':'🏠'}</div>`).join('')}
+                ${groups[s].map(p => `<div style="padding:5px 0; font-size:14px">${p.status==='Duty'?'✅':'🏠'} ${p.name}</div>`).join('')}
             </div>
         `).join('');
     }
 
+    // Actions
     async function saveData() {
         const n = document.getElementById('pName');
+        const r = document.getElementById('pRank');
+        const s = document.getElementById('pShift');
+        if(!n.value) return alert("تکایە ناو بنووسە");
+
         await db.collection("peshmerga").add({
-            name: n.value, rank: document.getElementById('pRank').value,
-            shift: document.getElementById('pShift').value, status: 'Duty', createdAt: new Date()
+            name: n.value, rank: r.value, shift: s.value,
+            status: 'Duty', createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        n.value = ''; alert("تۆمارکرا");
+        n.value = ''; r.value = ''; alert("بە سەرکەوتوویی تۆمارکرا");
     }
 
-    async function toggleS(id, s) { await db.collection("peshmerga").doc(id).update({status: s==='Duty'?'Off':'Duty'}); }
-    
+    async function toggleS(id, s) { 
+        await db.collection("peshmerga").doc(id).update({status: s==='Duty'?'Off':'Duty'}); 
+    }
+
     async function bulk(shiftName) {
-        const targets = (await db.collection("peshmerga").where("shift","==",shiftName).get()).docs;
-        const newS = targets[0].data().status === 'Duty' ? 'Off' : 'Duty';
+        const targets = allData.filter(p => p.shift === shiftName);
+        if(!targets.length) return;
+        const newS = targets[0].status === 'Duty' ? 'Off' : 'Duty';
         const batch = db.batch();
-        targets.forEach(d => batch.update(d.ref, {status: newS}));
+        targets.forEach(p => batch.update(db.collection("peshmerga").doc(p.id), {status: newS}));
         await batch.commit();
     }
 
