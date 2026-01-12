@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سیستمی پێشکەوتووی پێشمەرگە</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        :root { --primary: #1a252f; --secondary: #27ae60; --danger: #c0392b; --info: #2980b9; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; margin: 0; display: flex; flex-direction: column; }
+        
+        /* Login UI */
+        #login-section { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
+        .login-box { background: white; padding: 30px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+
+        /* Responsive Sidebar/Header */
+        .sidebar { width: 260px; background: var(--primary); height: 100vh; color: white; position: fixed; right: 0; top: 0; transition: 0.3s; z-index: 100; overflow-y: auto; display: none; }
+        .sidebar h2 { text-align: center; padding: 20px; border-bottom: 1px solid #34495e; margin: 0; font-size: 1.2rem; }
+        .sidebar button { width: 100%; padding: 15px; background: none; border: none; color: white; text-align: right; cursor: pointer; transition: 0.3s; font-size: 15px; border-bottom: 1px solid #2c3e50; }
+        .sidebar button:hover, .sidebar button.active { background: var(--secondary); }
+        
+        /* Hamburger Menu for Mobile */
+        .menu-btn { display: none; background: var(--primary); color: white; border: none; padding: 15px; text-align: right; cursor: pointer; font-size: 1.2rem; position: sticky; top: 0; z-index: 101; }
+
+        /* Main Content */
+        .main { margin-right: 260px; padding: 20px; transition: 0.3s; display: none; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; overflow-x: auto; }
+        
+        /* Forms and Tables */
+        .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        input, select { padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        .btn-add { background: var(--secondary); color: white; }
+        .btn-print { background: var(--info); color: white; margin-bottom: 15px; }
+        .btn-del { background: var(--danger); color: white; padding: 5px 10px; }
+
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 12px; border: 1px solid #eee; text-align: center; font-size: 14px; }
+        th { background: #f8f9fa; color: var(--primary); }
+        
+        .alert-promo { background: #ffebeb; color: #c0392b; font-weight: bold; border-radius: 4px; padding: 5px; }
+        .group-header { background: #e8f4fd; text-align: right; font-weight: bold; padding: 12px; border-right: 5px solid var(--info); margin-top: 20px; }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 992px) {
+            .sidebar { width: 220px; }
+            .main { margin-right: 220px; }
+        }
+
+        @media (max-width: 768px) {
+            .menu-btn { display: block; }
+            .sidebar { transform: translateX(100%); width: 260px; }
+            .sidebar.active { transform: translateX(0); }
+            .main { margin-right: 0; padding: 15px; }
+        }
+
+        @media print {
+            .sidebar, .btn, .menu-btn, .form-group, .no-print { display: none !important; }
+            .main { margin: 0; width: 100%; }
+            .section { display: block !important; page-break-after: always; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="menu-btn" onclick="toggleSidebar()">☰ پۆلێنەکان</button>
+
+<div id="login-section">
+    <div class="login-box">
+        <h2 style="color: var(--primary); margin-top: 0;">چوونەژوورەوەی ئەدمین</h2>
+        <input type="email" id="admin-email" placeholder="ئیمێڵی تایبەت">
+        <input type="password" id="admin-password" placeholder="وشەی تێپەڕ">
+        <button class="btn btn-add" style="width:100%" onclick="login()">داخڵبوون</button>
+        <p id="error-msg" style="color:red; display:none; margin-top:10px; font-size:14px;">زانیارییەکان هەڵەیە!</p>
+    </div>
+</div>
+
+<div class="sidebar" id="sidebar">
+    <h2>سەرکردایەتی گشتی</h2>
+    <button onclick="showSection('add')" id="btn-add" class="active">تۆمارکردنی نوێ</button>
+    <button onclick="showSection('list')" id="btn-list">لیستی گشتی</button>
+    <button onclick="showSection('shifts')" id="btn-shifts">پولێنکردنی واجیب</button>
+    <button onclick="showSection('attendance')" id="btn-attendance">ئامادەبوون</button>
+    <button onclick="showSection('promotion')" id="btn-promotion">پلەبەرزکردنەوە</button>
+    <button onclick="logout()" style="background:var(--danger); border:none; margin-top:20px;">چوونەدەرەوە</button>
+</div>
+
+<div class="main" id="main-content">
+    
+    <div id="section-add" class="section">
+        <div class="card">
+            <h3>تۆمارکردنی پێشمەرگەی نوێ</h3>
+            <div class="form-group">
+                <input type="text" id="pName" placeholder="ناوی سیانی">
+                <input type="text" id="pRank" placeholder="پلە">
+                <input type="date" id="pStartDate" title="ڕێکەوتی دەستبەکاربوون">
+                <select id="pShift">
+                    <option value="واجبی ١">واجبی ١</option>
+                    <option value="واجبی ٢">واجبی ٢</option>
+                    <option value="واجبی ٣">واجبی ٣</option>
+                </select>
+                <button class="btn btn-add" onclick="addPeshmerga()">پاشەکەوتکردن</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="section-list" class="section" style="display:none;">
+        <button class="btn btn-print" onclick="window.print()">چاپکردنی لیستی گشتی</button>
+        <div class="card">
+            <h3>لیستی ناوی گشت پێشمەرگەکان</h3>
+            <table>
+                <thead><tr><th>ناو</th><th>پلە</th><th>دەستبەکاربوون</th><th>کردار</th></tr></thead>
+                <tbody id="listBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="section-shifts" class="section" style="display:none;">
+        <button class="btn btn-print" onclick="window.print()">چاپکردنی خشتەی واجیب</button>
+        <div id="shiftContainer"></div>
+    </div>
+
+    <div id="section-attendance" class="section" style="display:none;">
+        <div class="card">
+            <h3>تۆماری ئامادەنەبوون</h3>
+            <table>
+                <thead><tr><th>ناو</th><th>پلە</th><th>کۆی غیابات</th><th>تۆمارکردن</th></tr></thead>
+                <tbody id="attBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="section-promotion" class="section" style="display:none;">
+        <div class="card">
+            <h3>کاتی پلەبەرزکردنەوە (دوای ٣ ساڵ)</h3>
+            <table>
+                <thead><tr><th>ناو</th><th>پلە</th><th>دەستبەکاربوون</th><th>کاتی پلەبەرزکردنەوە</th></tr></thead>
+                <tbody id="promoBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // 1. Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCPmPpzAYhMx2KRBCzL1ZwS4AiqIuK1Nk8",
+      authDomain: "peshmarga-69612.firebaseapp.com",
+      projectId: "peshmarga-69612",
+      storageBucket: "peshmarga-69612.firebasestorage.app",
+      messagingSenderId: "1035656117946",
+      appId: "1:1035656117946:web:3f520dbd85395fad9b4c83"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // 2. Auth Logic
+    async function login() {
+        const email = document.getElementById('admin-email').value;
+        const pass = document.getElementById('admin-password').value;
+        try {
+            await auth.signInWithEmailAndPassword(email, pass);
+        } catch (e) {
+            document.getElementById('error-msg').style.display = 'block';
+        }
+    }
+
+    async function logout() { await auth.signOut(); location.reload(); }
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('sidebar').style.display = 'block';
+            document.getElementById('main-content').style.display = 'block';
+            render();
+        }
+    });
+
+    // 3. System Logic
+    async function addPeshmerga() {
+        const name = document.getElementById('pName').value;
+        const rank = document.getElementById('pRank').value;
+        const date = document.getElementById('pStartDate').value;
+        const shift = document.getElementById('pShift').value;
+
+        if(!name || !date) return alert("تکایە ناو و ڕێکەوت پڕ بکەرەوە");
+
+        await db.collection("peshmerga").add({
+            name, rank, startDate: date, shift, absent: 0, createdAt: new Date()
+        });
+        alert("تۆمارکرا");
+        ["pName", "pRank", "pStartDate"].forEach(id => document.getElementById(id).value = "");
+    }
+
+    function render() {
+        db.collection("peshmerga").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+            const listBody = document.getElementById('listBody');
+            const attBody = document.getElementById('attBody');
+            const promoBody = document.getElementById('promoBody');
+            const shiftContainer = document.getElementById('shiftContainer');
+
+            listBody.innerHTML = ''; attBody.innerHTML = ''; promoBody.innerHTML = ''; shiftContainer.innerHTML = '';
+            const groups = {'واجبی ١': [], 'واجبی ٢': [], 'واجبی ٣': []};
+
+            snapshot.forEach(doc => {
+                const p = doc.data();
+                const id = doc.id;
+
+                // List Table
+                listBody.innerHTML += `<tr><td>${p.name}</td><td>${p.rank}</td><td>${p.startDate}</td><td><button class="btn btn-del" onclick="deleteP('${id}')">سڕینەوە</button></td></tr>`;
+                
+                // Attendance
+                attBody.innerHTML += `<tr><td>${p.name}</td><td>${p.rank}</td><td>${p.absent} ڕۆژ</td><td><button class="btn btn-add" style="padding:5px" onclick="updateAbsence('${id}', ${p.absent})">+ غیاب</button></td></tr>`;
+                
+                // Promotion
+                let start = new Date(p.startDate);
+                let promoDate = new Date(start.setFullYear(start.getFullYear() + 3));
+                let alertClass = (new Date() >= promoDate) ? 'class="alert-promo"' : '';
+                promoBody.innerHTML += `<tr><td>${p.name}</td><td>${p.rank}</td><td>${p.startDate}</td><td ${alertClass}>${promoDate.toLocaleDateString('ku-IQ')}</td></tr>`;
+
+                if(groups[p.shift]) groups[p.shift].push(p);
+            });
+
+            for (let g in groups) {
+                let html = `<div class="card"><div class="group-header">${g}</div><table>`;
+                groups[g].forEach(p => html += `<tr><td>${p.name}</td><td>${p.rank}</td></tr>`);
+                html += `</table></div>`;
+                shiftContainer.innerHTML += html;
+            }
+        });
+    }
+
+    async function deleteP(id) { if(confirm("سڕینەوە لە سێرڤەر؟")) await db.collection("peshmerga").doc(id).delete(); }
+    async function updateAbsence(id, current) { await db.collection("peshmerga").doc(id).update({ absent: current + 1 }); }
+
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+        document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+        document.getElementById('section-' + id).style.display = 'block';
+        document.getElementById('btn-' + id).classList.add('active');
+        if(window.innerWidth <= 768) toggleSidebar();
+    }
+
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+</script>
+
+</body>
+</html>
